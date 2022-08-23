@@ -11,7 +11,7 @@ import (
 var body = &icmp.Echo{
 	ID:   123123,
 	Seq:  100,
-	Data: []byte("123"),
+	Data: []byte("123213123"),
 }
 
 var xd = icmp.Message{
@@ -27,11 +27,10 @@ func main() {
 	flag.BoolVar(&mode, "u", false, "smt easy")
 
 	flag.Parse()
-	sneakyicmp.SendICMP(xd, "0.0.0.0")
-	/*if !mode {
+	if !mode {
+		sneakyicmp.SendICMP(xd, "0.0.0.0")
 		//sneakyicmp.SendSneakyMessage("172.31.252.17", msg)
 	} else {
 		sneakyicmp.RecvSneakyMessage("172.31.252.17")
 	}
-	*/
 }

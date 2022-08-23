@@ -3,10 +3,7 @@ package sneakyicmp
 import (
 	"log"
 	"net"
-	"strconv"
-	"strings"
 
-	"github.com/go-ping/ping"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 )
@@ -16,45 +13,55 @@ const (
 	icmpHeader       = 8
 )
 
-var body = &icmp.Echo{
-	ID:   123123,
-	Seq:  100,
-	Data: []byte("213"),
-}
-
-var xd = icmp.Message{
-	Type: ipv4.ICMPTypeEcho,
-	Code: 0,
-	Body: body,
-}
-
 func formatMessage(message string) []byte {
 	x := []byte(message)
 	return x
+}
+
+type Ping struct {
+	IpType     icmp.Type
+	Privileged bool
+	Size       int
+	DstIp      string
+	SrcIp      string
+	Protocol   string
+}
+
+type Message struct {
+	payload       []Ping
+	encryption    bool
+	encryptionKey string
 }
 
 /*
 Based on ip in string, return a pointer to object net.IPAddr
 */
 func ipStringToIpAddr(ip string) *net.IPAddr {
-	ipOctects := strings.Split(ip, ".")
-	var ipByteOctets [4]byte
-	for i := 0; i < len(ipOctects); i++ {
-		ipInt, err := strconv.Atoi(ipOctects[i])
-		if err != nil {
-			log.Fatalf("Wrong address!")
-		}
-		ipByteOctets[i] = byte(ipInt)
-	}
-	ipv4 := net.IPv4(ipByteOctets[0], ipByteOctets[1], ipByteOctets[2], ipByteOctets[3])
+
+	ipv4 := net.ParseIP(ip)
 	targetIp := &net.IPAddr{
 		IP: ipv4,
 	}
 	return targetIp
 }
 
+func NewPing(size int, dstIp string) *Ping {
+	p := NewPing{
+		IpType: ipv4.ICMPTypeEcho,
+	}
+
+}
+
+func (p *Ping) makeConn() (net.PacketConn, error) {
+	conn, err := net.ListenPacket(p.Protocol, p.DstIp)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
+}
+
 func SendICMP(msg icmp.Message, dst string) {
-	c, err := net.ListenPacket("ip:1", dst)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,6 +76,7 @@ func SendICMP(msg icmp.Message, dst string) {
 	log.Println(x)
 }
 
+/*
 func SendSneakyMessage(addr string, message string) error {
 	p := ping.New(addr)
 
@@ -86,7 +94,7 @@ func SendSneakyMessage(addr string, message string) error {
 
 	return nil
 }
-
+*/
 func RecvSneakyMessage(url string) []byte {
 	var sneakyMessage []byte
 	conn, err := icmp.ListenPacket("ip4:icmp", url)
