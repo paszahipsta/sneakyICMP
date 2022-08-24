@@ -19,7 +19,6 @@ func formatMessage(message string) []byte {
 }
 
 type Ping struct {
-	IpType     icmp.Type
 	Privileged bool
 	Size       int
 	DstIp      string
@@ -45,11 +44,24 @@ func ipStringToIpAddr(ip string) *net.IPAddr {
 	return targetIp
 }
 
-func NewPing(size int, dstIp string) *Ping {
-	p := NewPing{
-		IpType: ipv4.ICMPTypeEcho,
+func NewPing(dstIp string, srcIp string, elevated bool) *Ping {
+	p := Ping{
+		Privileged: elevated,
+		DstIp:      dstIp,
+		SrcIp:      srcIp,
 	}
 
+	return p
+}
+
+func (p *Ping) privileged(elevated bool) {
+	if elevated == true {
+		p.Privileged = true
+		p.Protocol = "ip:icmp"
+	} else {
+		p.Privileged = false
+		p.Protocol = "udp4"
+	}
 }
 
 func (p *Ping) makeConn() (net.PacketConn, error) {
@@ -60,20 +72,46 @@ func (p *Ping) makeConn() (net.PacketConn, error) {
 	return conn, nil
 }
 
-func SendICMP(msg icmp.Message, dst string) {
+func (p *Ping) createICMP() ([]byte, error) {
 
+	body := &icmp.Echo{
+		ID:   123123,
+		Seq:  100,
+		Data: []byte("123213123"),
+	}
+
+	icmpPacket := icmp.Message{
+		Type: ipv4.ICMPTypeEcho,
+		Code: 0,
+		Body: body,
+	}
+
+	pkt, err := icmpPacket.Marshal(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return pkt, nil
+}
+
+func (p *Ping) SendICMP() {
+	//Create icmp packet based on ping struct
+	icmpPacket, err := p.createICMP()
+	if err != nil {
+		log.Fatalf("Failed to fetch message, %s", err)
+	}
+	//Make connection with host
+	c, err := p.makeConn()
 	if err != nil {
 		log.Fatal(err)
 	}
-	pkt, err := msg.Marshal(nil)
-	if err != nil {
-		log.Fatal("Failed to fetch message")
-	}
 
-	targetIp := ipStringToIpAddr(dst)
-	x, err := c.WriteTo(pkt, targetIp)
-	log.Println(err)
-	log.Println(x)
+	//Send packet to host
+	targetIp := ipStringToIpAddr(p.DstIp)
+	_, err = c.WriteTo(icmpPacket, targetIp)
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 /*
