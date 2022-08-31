@@ -28,8 +28,6 @@ func main() {
 
 	flag.Parse()
 	if !mode {
-		sneakyicmp.SendICMP(xd, "0.0.0.0")
-		//sneakyicmp.SendSneakyMessage("172.31.252.17", msg)
 	} else {
 		sneakyicmp.RecvSneakyMessage("172.31.252.17")
 	}
